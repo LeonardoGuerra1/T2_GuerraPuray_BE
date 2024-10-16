@@ -26,70 +26,62 @@ public class AutenticacionServiceImpl implements AutenticacionService {
 
     @Override
     public String[] validarUsuario(LoginRequestDTO loginRequestDTO) throws IOException {
-
         String[] datosUsuario = null;
         Resource resource = resourceLoader.getResource("classpath:usuarios.txt");
 
         try (BufferedReader br = new BufferedReader(new FileReader(resource.getFile()))) {
-
             String linea;
             while ((linea = br.readLine()) != null) {
-
                 String[] datos = linea.split(";");
                 if (loginRequestDTO.tipoDocumento().equals(datos[0]) &&
                     loginRequestDTO.numeroDocumento().equals(datos[1]) &&
                     loginRequestDTO.password().equals(datos[2])) {
-
                     datosUsuario = new String[2];
-                    datosUsuario[0] = datos[3]; // Recuperar nombre
-                    datosUsuario[1] = datos[4]; // Recuperar email
-
+                    datosUsuario[0] = datos[3];
+                    datosUsuario[1] = datos[4];
                 }
-
             }
-
         } catch (IOException e) {
             datosUsuario = null;
             throw new IOException(e);
         }
-
         return datosUsuario;
     }
 
     @Override
-    public Date cerrarSesionUsuario(LogoutRequestDTO logoutRequestDTO) throws IOException {
-
+    public Date salirUsuario(LogoutRequestDTO logoutRequestDTO) throws IOException {
         Date fechaLogout = null;
-        Resource resource = resourceLoader.getResource("classpath:auditoria.txt");
-        Path rutaArchivo = Paths.get(resource.getURI());
+        Resource resourceAuditoria = resourceLoader.getResource("classpath:auditoria.txt");
+        Path rutaAuditoria = Paths.get(resourceAuditoria.getURI());
 
-        try (BufferedWriter bw = Files.newBufferedWriter(rutaArchivo, StandardOpenOption.APPEND)) {
-
-            // definir fecha
-            fechaLogout = new Date();
-
-            // preparar linea
-            StringBuilder sb = new StringBuilder();
-            sb.append(logoutRequestDTO.tipoDocumento());
-            sb.append(";");
-            sb.append(logoutRequestDTO.numeroDocumento());
-            sb.append(";");
-            sb.append(fechaLogout);
-
-            // escribir linea
-            bw.write(sb.toString());
-            bw.newLine();
-            System.out.println(sb.toString());
-
+        String linea = null;
+        String[] datosEncontrado = null;
+        try (BufferedWriter bw = Files.newBufferedWriter(rutaAuditoria, StandardOpenOption.APPEND)) {
+            Resource resourceUsuarios = resourceLoader.getResource("classpath:usuarios.txt");
+            BufferedReader br = new BufferedReader(new FileReader(resourceUsuarios.getFile()));
+            while ((linea = br.readLine()) != null) {
+                String[] datos = linea.split(";");
+                if (logoutRequestDTO.correoUsuario().equals(datos[4])) {
+                    datosEncontrado = new String[2];
+                    datosEncontrado[0] = datos[0];//TIPO DOC
+                    datosEncontrado[1] = datos[1];//NRO DOC
+                }
+            }
+            if (datosEncontrado != null) {
+                fechaLogout = new Date();
+                StringBuilder sb = new StringBuilder();
+                sb.append(datosEncontrado[0]);
+                sb.append(";");
+                sb.append(datosEncontrado[1]);
+                sb.append(";");
+                sb.append(fechaLogout);
+                bw.write(sb.toString());
+                bw.newLine();
+            }
         } catch (IOException e) {
-
             fechaLogout = null;
             throw new IOException(e);
-
         }
-
         return fechaLogout;
-
     }
-
 }
